@@ -8,29 +8,106 @@ fn main() {
     for folder in folders {
         fs::create_dir_all(folder).expect(&format!("Помилка при створенні папки {}", folder));
     }
+    loop {
+        println!("\nВиберіть дію:\n 1 - альбом\n 2 - одна пісня\n 3 - завантаження пісні по назві (без посилання, поки що завантажує з yt, а не з ytm)\n q - вихід");
 
-    println!("\nВиберіть дію:\n 1 - альбом (з обкладинкою, окрема папка, mp3, без зайвих символів)
-                \n 2 - одна пісня (те ж саме що і в альбомі)");
+        let mut input_text = String::new();
+        
+        io::stdin()
+            .read_line(&mut input_text)
+            .expect("Error in reading input");
 
-    let mut input_text = String::new();
+        match input_text.trim().chars().next() {
+            Some('1') => download_album(),
+            Some('2') => download_single_song(),
+            Some('3') => download_song_by_title(),
+            Some('q') => break,
+            Some(other_ch) => println!("Команди {} не існує", other_ch),
+            None => println!("Натиснуто Enter на порожньому місці!")
+        }
+    }
+}
+
+fn download_song_by_title() {
+    println!("Введіть повну назву пісні: ");
+
+    let mut song_name: String = String::new();
+        io::stdin()
+            .read_line(&mut song_name)
+            .expect("Error in reading input");
+        
+    let clean_name = song_name.trim();
     
-    io::stdin()
-        .read_line(&mut input_text)
-        .expect("Error in reading input");
+    println!("\n Завантаження розпочато... "); 
 
-    match input_text.trim().chars().next() {
-        Some('1') => download_album(),
-        Some('2') => download_single_song(),
-        // Some('q') => break,
-        Some(other_ch) => println!("Команди {} не існує", other_ch),
-        None => println!("Натиснуто Enter на порожньому місці!")
+    // запуск основного завантаження    
+    let status = Command::new("yt-dlp")
+        .arg("-x")
+        .arg("--embed-thumbnail")
+        .arg("--audio-format").arg("mp3")
+        .arg("--embed-metadata") // теги
+        .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
+        .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
+        .arg(format!("ytsearch1:{}", clean_name))
+        .status()
+        .expect("Помилка у завантаженні");
+
+    if status.success() {
+        println!("Успішно завантажено!");
+        println!("Шлях до папки: ./Music/Singles");
+        let files = show_music_files("Singles");
+        print_files_list(&files);
+    } else {
+        println!("Виникла помилка під час завантаження");
+    }
+}
+
+
+fn download_album() {
+    let clean_url = input_url();
+    
+    // запис назви альбому який створиться
+    let yt_output = Command::new("yt-dlp")
+    .arg("--print")
+    .arg("%(playlist_title)s")
+    .arg("--playlist-items").arg("1")
+    .arg(&clean_url)
+    .output()
+    .expect("Не вдалося запустити yt-dlp");
+
+    println!("\n Завантаження розпочато... ");
+
+    // перетворення виводу в текст
+    let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
+
+    // береться тільки перший рядок з того, що вивів yt-dlp
+    let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
+
+    // запуск основного завантаження    
+    let status = Command::new("yt-dlp")
+    .arg("-x")
+    .arg("--embed-thumbnail")
+    .arg("--audio-format").arg("mp3")
+    .arg("--embed-metadata") // теги
+    .arg("-o").arg(format!("./Music/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
+    .arg(&clean_url)
+    .status()
+    .expect("Помилка у завантаженні");
+
+    if status.success() {
+        println!("Успішно завантажено!");
+        println!("Шлях до папки: {}", folder_name);
+        let files = show_music_files(&folder_name);
+        print_files_list(&files);
+    } else {
+        println!("Виникла помилка під час завантаження");
     }
 }
 
 fn download_single_song() {
     let clean_url = input_url();
 
-    println!("\n Завантаження почато... "); 
+    println!("\n Завантаження розпочато... "); 
 
     // запуск основного завантаження    
     let status = Command::new("yt-dlp")
@@ -53,52 +130,10 @@ fn download_single_song() {
         println!("Виникла помилка під час завантаження");
     }
 }
-
-fn download_album() {
-    let clean_url = input_url();
-
-    // запис назви альбому який створиться
-    let yt_output = Command::new("yt-dlp")
-    .arg("--print")
-    .arg("%(playlist_title)s")
-    .arg("--playlist-items").arg("1")
-    .arg(&clean_url)
-    .output()
-    .expect("Не вдалося запустити yt-dlp");
-
-    println!("\n Завантаження почато... ");
-    
-    // перетворення виводу в текст
-    let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
-
-    // береться тільки перший рядок з того, що вивів yt-dlp
-    let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
-
-    // запуск основного завантаження    
-    let status = Command::new("yt-dlp")
-        .arg("-x")
-        .arg("--embed-thumbnail")
-        .arg("--audio-format").arg("mp3")
-        .arg("--embed-metadata") // теги
-        .arg("-o").arg(format!("./Music/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-        .arg(&clean_url)
-        .status()
-        .expect("Помилка у завантаженні");
-
-    if status.success() {
-        println!("Успішно завантажено!");
-        println!("Шлях до папки: {}", folder_name);
-        let files = show_music_files(&folder_name);
-        print_files_list(&files);
-    } else {
-        println!("Виникла помилка під час завантаження");
-    }
-}
-
 fn show_music_files(new_folder: &str) -> Vec<String> {
     let path = format!("./Music/{}", new_folder);
     let mut file_names: Vec<String> = Vec::new();
-
+    
     if let Ok(entries) = fs::read_dir(&path) {
         for entry in entries.flatten() {
             let path = entry.path();
