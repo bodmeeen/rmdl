@@ -22,7 +22,7 @@ pub fn download_album() {
     // береться тільки перший рядок з того, що вивів yt-dlp
     let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
 
-    // запуск основного завантаження    
+    // запуск основного завантаження
     let status = Command::new("yt-dlp")
     .arg("-x")
     .arg("--embed-thumbnail")
