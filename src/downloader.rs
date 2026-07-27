@@ -4,7 +4,7 @@ use::std::io;
 
 pub fn download_album() {
     let clean_url = input_url();
-    
+    let quality_mus = quality_check();
     // запис назви альбому який створиться
     let yt_output = Command::new("yt-dlp")
     .arg("--print")
@@ -24,14 +24,15 @@ pub fn download_album() {
 
     // запуск основного завантаження    
     let status = Command::new("yt-dlp")
-    .arg("-x")
-    .arg("--embed-thumbnail")
-    .arg("--audio-format").arg("mp3")
-    .arg("--embed-metadata") // теги
-    .arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-    .arg(&clean_url)
-    .status()
-    .expect("Помилка у завантаженні");
+        .arg("-x")
+        .arg("--embed-thumbnail")
+        .arg("--audio-format").arg("mp3")
+        .arg("--embed-metadata") // теги
+        .arg("--audio-quality").arg(&quality_mus)
+        .arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
+        .arg(&clean_url)
+        .status()
+        .expect("Помилка у завантаженні");
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -47,15 +48,16 @@ pub fn download_album() {
 
 pub fn download_playlist() {
     let clean_url = input_url();
+    let quality_mus = quality_check();
     
     // запис назви альбому який створиться
     let yt_output = Command::new("yt-dlp")
-    .arg("--print")
-    .arg("%(playlist_title)s")
-    .arg("--playlist-items").arg("1")
-    .arg(&clean_url)
-    .output()
-    .expect("Не вдалося запустити yt-dlp");
+        .arg("--print")
+        .arg("%(playlist_title)s")
+        .arg("--playlist-items").arg("1")
+        .arg(&clean_url)
+        .output()
+        .expect("Не вдалося запустити yt-dlp");
 
     println!("\n Завантаження розпочато... ");
 
@@ -67,14 +69,15 @@ pub fn download_playlist() {
 
     // запуск основного завантаження    
     let status = Command::new("yt-dlp")
-    .arg("-x")
-    .arg("--embed-thumbnail")
-    .arg("--audio-format").arg("mp3")
-    .arg("--embed-metadata") // теги
-    .arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-    .arg(&clean_url)
-    .status()
-    .expect("Помилка у завантаженні");
+        .arg("-x")
+        .arg("--embed-thumbnail")
+        .arg("--audio-format").arg("mp3")
+        .arg("--audio-quality").arg(&quality_mus)
+        .arg("--embed-metadata") // теги
+        .arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
+        .arg(&clean_url)
+        .status()
+        .expect("Помилка у завантаженні");
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -90,20 +93,21 @@ pub fn download_playlist() {
 
 pub fn download_single_song() {
     let clean_url = input_url();
-    
-    println!("\n Завантаження розпочато... "); 
+    let quality_mus = quality_check();
+    println!("\n Завантаження розпочато...");
     
     // запуск основного завантаження    
     let status = Command::new("yt-dlp")
-    .arg("-x")
-    .arg("--embed-thumbnail")
-    .arg("--audio-format").arg("mp3")
-    .arg("--embed-metadata") // теги
-    .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
-    .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
-    .arg(&clean_url)
-    .status()
-    .expect("Помилка у завантаженні");
+        .arg("-x")
+        .arg("--embed-thumbnail")
+        .arg("--audio-format").arg("mp3")
+        .arg("--embed-metadata") // теги
+        .arg("--audio-quality").arg(&quality_mus)
+        .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
+        .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
+        .arg(&clean_url)
+        .status()
+        .expect("Помилка у завантаженні");
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -123,7 +127,9 @@ pub fn download_song_by_title() {
         io::stdin()
             .read_line(&mut song_name)
             .expect("Error in reading input");
-        
+    
+    let quality_mus = quality_check();
+    
     let clean_name = song_name.trim();
     
     println!("\n Завантаження розпочато... "); 
@@ -134,6 +140,7 @@ pub fn download_song_by_title() {
         .arg("--embed-thumbnail")
         .arg("--audio-format").arg("mp3")
         .arg("--embed-metadata") // теги
+        .arg("--audio-quality").arg(&quality_mus)
         .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
         .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
         .arg(format!("ytsearch1:{}", clean_name))
@@ -186,4 +193,30 @@ pub fn input_url() -> String{
             .read_line(&mut url)
             .expect("Error in reading input");
         url.trim().to_string()
+}
+
+pub fn quality_check() -> String{
+    let mut quality_str = String::new();
+    loop {
+        println!("Вкажіть бажану якість музики(0-9, де 0 - найбільша)");
+        let mut inp: String = String::new();
+            io::stdin()
+                .read_line(&mut inp)
+                .expect("Помилка в читанні рядка");
+
+        match inp.trim().parse::<u8>() {
+            Ok(inp) => {
+                if inp <= 9 {
+                    quality_str = inp.to_string();
+                    break;
+                } else {
+                    println!("Помилка: введена цифра {} більше за 9, спробуйте ще раз", inp);
+                }
+            }
+            Err(_) => {
+                println!("Помилка: ви ввели не цифру, спрoбуйте ще раз");
+            }
+        }
+    }
+    quality_str
 }
