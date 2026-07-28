@@ -5,6 +5,7 @@ use::std::io;
 pub fn download_album() {
     let clean_url = input_url();
     let quality_mus = quality_check();
+
     // запис назви альбому який створиться
     let yt_output = Command::new("yt-dlp")
     .arg("--print")
@@ -191,9 +192,10 @@ pub fn input_url() -> String{
         let mut url: String = String::new();
         io::stdin()
             .read_line(&mut url)
-            .expect("Error in reading input");
+            .expect("Помилка в читанні рядка");
         url.trim().to_string()
 }
+
 
 pub fn quality_check() -> String{
     let mut quality_str = String::new();
@@ -219,4 +221,55 @@ pub fn quality_check() -> String{
         }
     }
     quality_str
+}
+
+
+pub enum DownloadMode {
+    Album,
+    Playlist,
+    Single,
+    Custom(String), // збереження назви для нової папки яку введе користувач
+}
+
+
+impl DownloadMode {
+    // ф-я повертає готовий рядок для аргумента -o в yt-dlp
+    fn get_output_arg_o(&self) -> String { 
+        match self {
+            DownloadMode::Album => String::from("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"),
+            DownloadMode::Playlist => String::from("./Music/Playlists/%(playlist_title)s/%(titles)s.%(ext)s"),
+            DownloadMode::Single => String::from("./Music/Singles/%(title)s.%(ext)s"),
+            DownloadMode::Custom(folder_name) => format!("./Music/{}/%(title)s.%(ext)s", folder_name),
+        }
+    }
+}
+
+struct DownloadTask { 
+    url: String,
+    quality: String, // тут потрібно дописати
+}
+
+
+impl DownloadTask { 
+    pub fn start_download(&self) {
+        // отримання правильного шляху з enum
+        let output_path = self.mode.get_output_arg_o();
+        println!("Запускаємо yt-dlp...");
+
+        let status = Command::new("yt-dlp")
+            .arg("-x")
+            .arg("--audio-format").arg("mp3")
+            .arg("--audio-quality").arg(&self.quality)
+            .arg("-o").arg(&output_path) // згенерований шлях
+            .arg(&self.url)              // посилання
+            .status()
+            .expect("Помилка запуску");
+            
+        // далі має бути  перевірка status.success()
+    }
+}
+
+
+pub fn custom_download() {
+    // далі потрібно додати зчитування вводу користувача, ну і далі все що треба
 }

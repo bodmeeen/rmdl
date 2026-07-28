@@ -10,7 +10,7 @@ fn main() {
         fs::create_dir_all(folder).expect(&format!("Помилка при створенні папки {}", folder));
     }
     loop {
-        println!("\nВиберіть що потрібно завантажити:\n 1 - альбом\n 2 - плейлист\n 3 - одна пісня\n 4 - пісня по назві\n q - вихід");
+        println!("\nВиберіть що потрібно завантажити:\n 1 - альбом\n 2 - плейлист\n 3 - одна пісня\n 4 - пісня по назві\n 5 - кастомне завантаження\n q - вихід");
 
         let mut input_text = String::new();
         
@@ -23,8 +23,9 @@ fn main() {
             Some('2') => downloader::download_playlist(),
             Some('3') => downloader::download_single_song(),
             Some('4') => downloader::download_song_by_title(),
+            Some('5') => downloader::custom_download(),
             Some('q') => break,
-            Some(other_ch) => println!("Команди {} не існує", other_ch),
+            Some (other_ch) => println!("Команди {} не існує", other_ch),
             None => println!("Натиснуто Enter на порожньому місці!")
         }
     }
