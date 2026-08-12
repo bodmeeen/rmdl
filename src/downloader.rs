@@ -152,7 +152,7 @@ pub fn download_song_by_title() {
     if status.success() {
         println!("Успішно завантажено!");
         println!("Шлях до папки: ./Music/Singles");
-        let files = show_music_files("Singles");
+        let files = show_music_files("Music/Singles");
         print_files_list(&files);
     } else {
         println!("Виникла помилка під час завантаження");
