@@ -1,16 +1,13 @@
 use std::{process::Command};
 
-use crate::downloader::{quality_check};
-
 pub fn build_base_command(clean_url: &String) -> Command {
-    let quality_mus = quality_check();
     let mut cmd = Command::new("yt-dlp");
 
     cmd.arg("-x")
         .arg("--embed-thumbnail")
         .arg("--audio-format").arg("mp3")
         .arg("--embed-metadata")
-        .arg("--audio-quality").arg(&quality_mus)
+        .arg("--audio-quality").arg("0")
         .arg(&clean_url);
 
     cmd
