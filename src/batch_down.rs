@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
-use std::{io::Read, path::Path, process::Command};
 
-use crate::downloader::{print_files_list, show_music_files};
+use crate::cmd_builder::{build_base_command, get_folder_title};
+use crate::downloader::{print_files_list, show_music_files, ERR_START_YTDLP};
 
 
 pub fn parse_file(file_path: &str) -> io::Result<Vec<(u8, String)>> {
@@ -20,7 +20,7 @@ pub fn parse_file(file_path: &str) -> io::Result<Vec<(u8, String)>> {
         if let Some((method_str, url_str)) = line.split_once(' ') {
             if let Ok(method) = method_str.parse::<u8>() { // парсинг методу завантаження яке прописано в файлі у число
                 let url = url_str.trim_matches('"').to_string();
-                println!("Знайдено текст {} - {}", method, url); // замість цього виклик ф-ї
+                println!("Знайдено текст {} - {}", method, url); // test
                 tasks.push((method, url)); // зберігання в список
             }
             else {
@@ -44,32 +44,13 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
         match method {
             1 => {
                 println!("Завантаження як альбом");
-                let yt_output = Command::new("yt-dlp")
-                    .arg("--print")
-                    .arg("%(playlist_title)s")
-                    .arg("--playlist-items").arg("1")
-                    .arg(&url)
-                    .output()
-                    .expect("Не вдалося запустити yt-dlp");
-
-                    println!("\n Завантаження розпочато... ");
-
-                // перетворення виводу в текст
-                let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
-
-                    // береться тільки перший рядок з того, що вивів yt-dlp
-                let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
+                let folder_name = get_folder_title(&url);
 
                 // запуск основного завантаження    
-                let status = Command::new("yt-dlp")
-                    .arg("-x")
-                    .arg("--embed-thumbnail")
-                    .arg("--audio-format").arg("mp3")
-                    .arg("--embed-metadata")
-                    .arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"))
-                    .arg(&url)
-                    .status()
-                    .expect("Помилка у завантаженні");
+                let mut cmd = build_base_command(&url);
+                cmd.arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"));
+
+                let status = cmd.status().expect(ERR_START_YTDLP);
 
                 if status.success() {
                     println!("Успішно завантажено!");
@@ -84,32 +65,12 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
 
             2 => {
                 println!("Завантаження як плейлист");
-                let yt_output = Command::new("yt-dlp")
-                    .arg("--print")
-                    .arg("%(playlist_title)s")
-                    .arg("--playlist-items").arg("1")
-                    .arg(&url)
-                    .output()
-                    .expect("Не вдалося запустити yt-dlp");
+                let folder_name = get_folder_title(&url);
 
-                println!("\n Завантаження розпочато... ");
+                let mut cmd = build_base_command(&url);
+                cmd.arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s"));
 
-                // перетворення виводу в текст
-                let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
-
-                // береться тільки перший рядок з того, що вивів yt-dlp
-                let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
-
-                // запуск основного завантаження    
-                let status = Command::new("yt-dlp")
-                    .arg("-x")
-                    .arg("--embed-thumbnail")
-                    .arg("--audio-format").arg("mp3")
-                    .arg("--embed-metadata") // теги
-                    .arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-                    .arg(&url)
-                    .status()
-                    .expect("Помилка у завантаженні");
+                let status = cmd.status().expect(ERR_START_YTDLP);
 
                 if status.success() {
                     println!("Успішно завантажено!");
@@ -124,16 +85,13 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
 
             3 => {
                 println!("Завантаження як сингл");
-                let status = Command::new("yt-dlp")
-                    .arg("-x")
-                    .arg("--embed-thumbnail")
-                    .arg("--audio-format").arg("mp3")
-                    .arg("--embed-metadata")
-                    .arg("--no-playlist")
-                    .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s"))
-                    .arg(&url)
-                    .status()
-                    .expect("Помилка у завантаженні");
+                let mut cmd = build_base_command(&url);
+                cmd.arg("--no-playlist");
+                cmd.arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s"));
+
+                let status = cmd.status().expect(ERR_START_YTDLP);
+
+                println!("\n Завантаження розпочато...");
 
                 if status.success() {
                     println!("Успішно завантажено!");

@@ -1,40 +1,19 @@
 use::std::fs;
-use std::{io::Read, path::Path, process::Command};
+use std::{process::Command};
 use::std::io;
 
+use crate::cmd_builder::{build_base_command, get_folder_title};
+
+pub const ERR_START_YTDLP: &str = "Не вдалося запустити yt-dlp";
 
 pub fn download_album() {
     let clean_url = input_url();
-    let quality_mus = quality_check();
+    let folder_name = get_folder_title(&clean_url);
 
-    // запис назви альбому який створиться
-    let yt_output = Command::new("yt-dlp")
-    .arg("--print")
-    .arg("%(playlist_title)s")
-    .arg("--playlist-items").arg("1")
-    .arg(&clean_url)
-    .output()
-    .expect("Не вдалося запустити yt-dlp");
+    let mut cmd = build_base_command(&clean_url);
+    cmd.arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"));
 
-    println!("\n Завантаження розпочато... ");
-
-    // перетворення виводу в текст
-    let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
-
-    // береться тільки перший рядок з того, що вивів yt-dlp
-    let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
-
-    // запуск основного завантаження    
-    let status = Command::new("yt-dlp")
-        .arg("-x")
-        .arg("--embed-thumbnail")
-        .arg("--audio-format").arg("mp3")
-        .arg("--embed-metadata") // теги
-        .arg("--audio-quality").arg(&quality_mus)
-        .arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-        .arg(&clean_url)
-        .status()
-        .expect("Помилка у завантаженні");
+    let status = cmd.status().expect(ERR_START_YTDLP);
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -50,36 +29,12 @@ pub fn download_album() {
 
 pub fn download_playlist() {
     let clean_url = input_url();
-    let quality_mus = quality_check();
-    
-    // запис назви альбому який створиться
-    let yt_output = Command::new("yt-dlp")
-        .arg("--print")
-        .arg("%(playlist_title)s")
-        .arg("--playlist-items").arg("1")
-        .arg(&clean_url)
-        .output()
-        .expect("Не вдалося запустити yt-dlp");
+    let folder_name = get_folder_title(&clean_url);
 
-    println!("\n Завантаження розпочато... ");
+    let mut cmd = build_base_command(&clean_url);
+    cmd.arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s"));
 
-    // перетворення виводу в текст
-    let full_output = String::from_utf8_lossy(&yt_output.stdout).trim().to_string();
-
-    // береться тільки перший рядок з того, що вивів yt-dlp
-    let folder_name = full_output.lines().next().unwrap_or("").trim().to_string();
-
-    // запуск основного завантаження    
-    let status = Command::new("yt-dlp")
-        .arg("-x")
-        .arg("--embed-thumbnail")
-        .arg("--audio-format").arg("mp3")
-        .arg("--audio-quality").arg(&quality_mus)
-        .arg("--embed-metadata") // теги
-        .arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s")) // папка та чиста назва
-        .arg(&clean_url)
-        .status()
-        .expect("Помилка у завантаженні");
+    let status = cmd.status().expect(ERR_START_YTDLP);
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -95,26 +50,18 @@ pub fn download_playlist() {
 
 pub fn download_single_song() {
     let clean_url = input_url();
-    let quality_mus = quality_check();
+    let mut cmd = build_base_command(&clean_url);
+    cmd.arg("--no-playlist");
+    cmd.arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s"));
+
+    let status = cmd.status().expect(ERR_START_YTDLP);
+
     println!("\n Завантаження розпочато...");
-    
-    // запуск основного завантаження    
-    let status = Command::new("yt-dlp")
-        .arg("-x")
-        .arg("--embed-thumbnail")
-        .arg("--audio-format").arg("mp3")
-        .arg("--embed-metadata") // теги
-        .arg("--audio-quality").arg(&quality_mus)
-        .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
-        .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
-        .arg(&clean_url)
-        .status()
-        .expect("Помилка у завантаженні");
 
     if status.success() {
         println!("Успішно завантажено!");
         println!("Шлях до папки: ./Music/Singles");
-        let files = show_music_files("Singles");
+        let files = show_music_files("Music/Singles");
         print_files_list(&files);
     } else {
         println!("Виникла помилка під час завантаження");
@@ -145,9 +92,9 @@ pub fn download_song_by_title() {
         .arg("--audio-quality").arg(&quality_mus)
         .arg("--no-playlist") // завантажити тільки цю пісню якщо посилання на альбом чи плейлист
         .arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s")) // папка та чиста назва
-        .arg(format!("ytsearch1:{}", clean_name))
+        .arg(format!("ytmsearch1:{}", clean_name))
         .status()
-        .expect("Помилка у завантаженні");
+        .expect(ERR_START_YTDLP);
 
     if status.success() {
         println!("Успішно завантажено!");
@@ -223,56 +170,3 @@ pub fn quality_check() -> String{
     }
     quality_str
 }
-
-
-
-          // код для кастомного завантаження //
-// pub enum DownloadMode {
-//     Album,
-//     Playlist,
-//     Single,
-//     Custom(String), // збереження назви для нової папки яку введе користувач
-// }
-
-
-// impl DownloadMode {
-//     // ф-я повертає готовий рядок для аргумента -o в yt-dlp
-//     fn get_output_arg_o(&self) -> String { 
-//         match self {
-//             DownloadMode::Album => String::from("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"),
-//             DownloadMode::Playlist => String::from("./Music/Playlists/%(playlist_title)s/%(titles)s.%(ext)s"),
-//             DownloadMode::Single => String::from("./Music/Singles/%(title)s.%(ext)s"),
-//             DownloadMode::Custom(folder_name) => format!("./Music/{}/%(title)s.%(ext)s", folder_name),
-//         }
-//     }
-// }
-
-// struct DownloadTask { 
-//     url: String,
-//     quality: String, // тут потрібно дописати
-// }
-
-
-// impl DownloadTask { 
-//     pub fn start_download(&self) {
-//         // отримання правильного шляху з enum
-//         let output_path = self.mode.get_output_arg_o();
-//         println!("Запускаємо yt-dlp...");
-
-//         let status = Command::new("yt-dlp")
-//             .arg("-x")
-//             .arg("--audio-format").arg("mp3")
-//             .arg("--audio-quality").arg(&self.quality)
-//             .arg("-o").arg(&output_path) // згенерований шлях
-//             .arg(&self.url)              // посилання
-//             .status()
-//             .expect("Помилка запуску");
-            
-//         // далі має бути  перевірка status.success()
-//     }
-// }
-
-
-// pub fn custom_download() {
-//     // далі потрібно додати зчитування вводу користувача, ну і далі все що треба
-// }
