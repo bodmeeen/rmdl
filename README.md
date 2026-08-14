@@ -22,7 +22,22 @@ rmdl
 ```bash
 rmdl links.txt
 ```
-The utility first searches for the file in the current directory; if it doesn't find the file there, it searches the Desktop directory
+The utility first searches for the file in the current directory; if it doesn't find the file there, it searches the Desktop directory.
+
+File formatting rules:
+Each line in the text file must start with a specific number indicating the download type, followed by a space, and then the URL:
+
+    1 - for Albums
+
+    2 - for Playlists
+
+    3 - for Singles (individual tracks)
+
+Example of links.txt:
+    1 link1
+    3 link2
+    2 link3
+    ...
 
 ### 4. Browser Cookies & Authorization (Important Note)
 
@@ -33,5 +48,4 @@ How to use it correctly:
 2. CRITICAL: The browser MUST be fully closed before running rmdl. If the browser is open, the cookie database will be locked, and yt-dlp will throw an error.
 
 ##
-
 Note: If you switch browsers (e.g., from chromium to a specific firefox profile), remember to change the --cookies-from-browser argument inside cmd_builder.rs and run cargo install --path . again to apply the changes.
