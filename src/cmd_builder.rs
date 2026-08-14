@@ -8,6 +8,7 @@ pub fn build_base_command(clean_url: &String) -> Command {
         .arg("--audio-format").arg("mp3")
         .arg("--embed-metadata")
         .arg("--audio-quality").arg("0")
+        .arg("--cookies-from-browser").arg("chromium")
         .arg(&clean_url);
 
     cmd
@@ -19,6 +20,7 @@ pub fn get_folder_title(clean_url: &String) -> String {
         .arg("--print")
         .arg("%(playlist_title)s")
         .arg("--playlist-items").arg("1")
+        .arg("--cookies-from-browser").arg("chromium")
         .arg(&clean_url)
         .output()
         .expect("Не вдалося запустити yt-dlp");

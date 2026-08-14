@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use std::path::PathBuf;
 
 use crate::cmd_builder::{build_base_command, get_folder_title};
 use crate::downloader::{print_files_list, show_music_files, ERR_START_YTDLP};
@@ -20,7 +21,7 @@ pub fn parse_file(file_path: &str) -> io::Result<Vec<(u8, String)>> {
         if let Some((method_str, url_str)) = line.split_once(' ') {
             if let Ok(method) = method_str.parse::<u8>() { // парсинг методу завантаження яке прописано в файлі у число
                 let url = url_str.trim_matches('"').to_string();
-                println!("Знайдено текст {} - {}", method, url); // test
+                println!("Знайдено посилання {} - {}", method, url); // test
                 tasks.push((method, url)); // зберігання в список
             }
             else {
@@ -35,7 +36,7 @@ pub fn parse_file(file_path: &str) -> io::Result<Vec<(u8, String)>> {
 }
 
 
-pub fn download_from_txt(file_content: &[(u8, String)]) {
+pub fn download_from_txt(file_content: &[(u8, String)], system_path: &PathBuf) {
     println!("Отримано {} завдань", file_content.len());
 
     for (index, (method, url)) in file_content.iter().enumerate() {
@@ -48,14 +49,14 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
 
                 // запуск основного завантаження    
                 let mut cmd = build_base_command(&url);
-                cmd.arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"));
+                cmd.arg("-o").arg(format!("{}/Albums/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
 
                 if status.success() {
                     println!("Успішно завантажено!");
                     println!("Шлях до папки: {}", folder_name);
-                    let path_for_files = format!("./Music/Albums/{}", folder_name);
+                    let path_for_files = format!("{}/Albums/{}", system_path.display(), folder_name);
                     let files = show_music_files(&path_for_files);
                         print_files_list(&files);
                 } else {
@@ -68,14 +69,14 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
                 let folder_name = get_folder_title(&url);
 
                 let mut cmd = build_base_command(&url);
-                cmd.arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s"));
+                cmd.arg("-o").arg(format!("{}/Playlists/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
 
                 if status.success() {
                     println!("Успішно завантажено!");
                     println!("Шлях до папки: {}", folder_name);
-                    let path_for_files = format!("./Music/Playlists/{}", folder_name);
+                    let path_for_files = format!("{}/Playlists/{}", system_path.display(), folder_name);
                     let files = show_music_files(&path_for_files);
                     print_files_list(&files);
                 } else {
@@ -87,7 +88,7 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
                 println!("Завантаження як сингл");
                 let mut cmd = build_base_command(&url);
                 cmd.arg("--no-playlist");
-                cmd.arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s"));
+                cmd.arg("-o").arg(format!("{}/Singles/%(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
 
@@ -96,7 +97,7 @@ pub fn download_from_txt(file_content: &[(u8, String)]) {
                 if status.success() {
                     println!("Успішно завантажено!");
                     println!("Шлях до папки: ./Music/Singles");
-                    let files = show_music_files("Music/Singles");
+                    let files = show_music_files(&format!("{}/Singles", system_path.display()));
                     print_files_list(&files);
                 } else {
                     println!("Виникла помилка під час завантаження");

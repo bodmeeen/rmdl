@@ -1,24 +1,26 @@
-use::std::fs;
-use std::{process::Command};
-use::std::io;
+use std::fs;
+use std::io;
+use std::path::PathBuf;
 
 use crate::cmd_builder::{build_base_command, get_folder_title};
 
 pub const ERR_START_YTDLP: &str = "Не вдалося запустити yt-dlp";
 
-pub fn download_album() {
+pub fn download_album(system_path: &PathBuf) {
     let clean_url = input_url();
     let folder_name = get_folder_title(&clean_url);
 
     let mut cmd = build_base_command(&clean_url);
-    cmd.arg("-o").arg(format!("./Music/Albums/%(playlist_title)s/%(title)s.%(ext)s"));
-
+    cmd.arg("-o").arg(format!("{}/Albums/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
+    
+    println!("\n Завантаження розпочато...");
     let status = cmd.status().expect(ERR_START_YTDLP);
 
+    
     if status.success() {
         println!("Успішно завантажено!");
         println!("Шлях до папки: {}", folder_name);
-        let path_for_files = format!("./Music/Albums/{}", folder_name);
+        let path_for_files = format!("{}/Albums/{}", system_path.display(), folder_name);
         let files = show_music_files(&path_for_files);
         print_files_list(&files);
     } else {
@@ -27,19 +29,21 @@ pub fn download_album() {
 }
 
 
-pub fn download_playlist() {
+pub fn download_playlist(system_path: &PathBuf) {
     let clean_url = input_url();
     let folder_name = get_folder_title(&clean_url);
 
     let mut cmd = build_base_command(&clean_url);
-    cmd.arg("-o").arg(format!("./Music/Playlists/%(playlist_title)s/%(title)s.%(ext)s"));
+    cmd.arg("-o").arg(format!("{}/Playlists/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
 
+    println!("\n Завантаження розпочато...");
     let status = cmd.status().expect(ERR_START_YTDLP);
+
 
     if status.success() {
         println!("Успішно завантажено!");
         println!("Шлях до папки: {}", folder_name);
-        let path_for_files = format!("./Music/Playlists/{}", folder_name);
+        let path_for_files = format!("{}/Playlists/{}", system_path.display(), folder_name);
         let files = show_music_files(&path_for_files);
         print_files_list(&files);
     } else {
@@ -48,20 +52,21 @@ pub fn download_playlist() {
 }
 
 
-pub fn download_single_song() {
+pub fn download_single_song(system_path: &PathBuf) {
     let clean_url = input_url();
     let mut cmd = build_base_command(&clean_url);
     cmd.arg("--no-playlist");
-    cmd.arg("-o").arg(format!("./Music/Singles/%(title)s.%(ext)s"));
-
-    let status = cmd.status().expect(ERR_START_YTDLP);
+    cmd.arg("-o").arg(format!("{}/Singles/%(title)s.%(ext)s", system_path.display()));
 
     println!("\n Завантаження розпочато...");
+    let status = cmd.status().expect(ERR_START_YTDLP);
+
 
     if status.success() {
         println!("Успішно завантажено!");
-        println!("Шлях до папки: ./Music/Singles");
-        let files = show_music_files("Music/Singles");
+        println!("Шлях до папки: ./Music/Singles"); //тут теж потрібно system_path поставити
+        // let temp_path = &system_path.display();
+        let files = show_music_files(&format!("{}/Singles", system_path.display()));
         print_files_list(&files);
     } else {
         println!("Виникла помилка під час завантаження");
@@ -88,8 +93,8 @@ pub fn show_music_files(new_folder: &str) -> Vec<String> {
     file_names
 }
 
-
-pub fn print_files_list(files: &[String]) {// отримання зрізу (slice) замість посилання на Vec
+// отримання зрізу (slice) замість посилання на Vec
+pub fn print_files_list(files: &[String]) {
     println!("Усі файли: ");
     for (index, name) in files.iter().enumerate() {
         println!("{} -> {}", index + 1, name);
