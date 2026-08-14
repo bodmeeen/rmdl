@@ -30,14 +30,11 @@ Each line in the text file must start with a specific number indicating the down
     1 - for Albums
 
     2 - for Playlists
-
+    
     3 - for Singles (individual tracks)
 
 Example of links.txt:
     1 link1
-    3 link2
-    2 link3
-    ...
 
 ### 4. Browser Cookies & Authorization (Important Note)
 
