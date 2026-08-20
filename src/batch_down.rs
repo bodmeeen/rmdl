@@ -3,7 +3,8 @@ use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
 
 use crate::cmd_builder::{build_base_command, get_folder_title};
-use crate::downloader::{print_files_list, show_music_files, ERR_START_YTDLP};
+use crate::downloader::ERR_START_YTDLP;
+use crate::utils::{show_music_files, print_files_list};
 
 
 pub fn parse_file(file_path: &str) -> io::Result<Vec<(u8, String)>> {
@@ -44,12 +45,12 @@ pub fn download_from_txt(file_content: &[(u8, String)], system_path: &PathBuf) {
 
         match method {
             1 => {
-                println!("Завантаження як альбом");
+                println!("\nЗавантаження як альбом\n");
                 let folder_name = get_folder_title(&url);
 
                 // запуск основного завантаження    
                 let mut cmd = build_base_command(&url);
-                cmd.arg("-o").arg(format!("{}/Albums/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
+                cmd.arg("-o").arg(format!("{}/Albums/%(playlist_title)s/%(playlist_index)02d - %(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
 
@@ -65,11 +66,11 @@ pub fn download_from_txt(file_content: &[(u8, String)], system_path: &PathBuf) {
             }
 
             2 => {
-                println!("Завантаження як плейлист");
+                println!("\nЗавантаження як плейлист\n");
                 let folder_name = get_folder_title(&url);
 
                 let mut cmd = build_base_command(&url);
-                cmd.arg("-o").arg(format!("{}/Playlists/%(playlist_title)s/%(title)s.%(ext)s", system_path.display()));
+                cmd.arg("-o").arg(format!("{}/Playlists/%(playlist_title)s/%(playlist_index)02d - %(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
 
@@ -85,14 +86,11 @@ pub fn download_from_txt(file_content: &[(u8, String)], system_path: &PathBuf) {
             }
 
             3 => {
-                println!("Завантаження як сингл");
+                println!("\nЗавантаження як сингл\n");
                 let mut cmd = build_base_command(&url);
-                cmd.arg("--no-playlist");
                 cmd.arg("-o").arg(format!("{}/Singles/%(title)s.%(ext)s", system_path.display()));
 
                 let status = cmd.status().expect(ERR_START_YTDLP);
-
-                println!("\n Завантаження розпочато...");
 
                 if status.success() {
                     println!("Успішно завантажено!");

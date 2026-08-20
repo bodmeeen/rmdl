@@ -7,6 +7,7 @@ use dirs::audio_dir;
 mod downloader;
 mod batch_down;
 mod cmd_builder;
+mod utils;
 
 fn main() {
     let system_path: PathBuf = match audio_dir() {
@@ -35,7 +36,8 @@ fn main() {
     
     // перевірка що ввів користувач при виклику, 1 якщо просто rmdl, 2 якщо 
     // з назвою файлу де є посилання для завантаження
-    let args: Vec<String> = env::args().collect();
+    // -- env::args() збирає аргументи тільки один раз на початку
+    let args: Vec<String> = env::args().collect(); 
     match args.len() {
         1 => {
             loop {
@@ -46,10 +48,10 @@ fn main() {
                 io::stdin()
                     .read_line(&mut input_text)
                     .expect("Error in reading input");
-        
+
                 match input_text.trim().chars().next() {
-                    Some('1') => downloader::download_album(&system_path),
-                    Some('2') => downloader::download_playlist(&system_path),
+                    Some('1') => downloader::download_collection(&system_path, "Albums"),
+                    Some('2') => downloader::download_collection(&system_path, "Playlists"),
                     Some('3') => downloader::download_single_song(&system_path),
                     Some('q') => break,
                     Some (other_ch) => println!("Команди {} не існує", other_ch),
